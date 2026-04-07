@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>SignSpeak - Real-time Sign Language Recognition</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta content="Real-time Sign Language Recognition and Text-to-Speech Conversion" name="description" />
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1e40af;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --bg-light: #f8fafc;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Poppins', sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .app-header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-badge {
+            background: var(--success-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .status-badge.offline {
+            background: var(--danger-color);
+        }
+
+        /* User Section */
+        .user-section {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-greeting {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-greeting i {
+            font-size: 1.2rem;
+            color: var(--primary-color);
+        }
+
+        .btn-logout {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-logout:hover {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+
+        /* Main Container */
+        .main-wrapper {
+            display: flex;
+            min-height: calc(100vh - 80px);
+            gap: 0;
+        }
+
+        /* Left Panel - Video */
+        .video-panel {
+            flex: 1;
+            background: white;
+            padding: 2rem;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--success-color);
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* DSLR Camera Frame Style */
+        .camera-frame-container {
+            position: relative;
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 
+                inset 0 0 0 2px #2d2d2d,
+                0 10px 40px rgba(0, 0, 0, 0.3);
+            margin-bottom: 1.5rem;
+        }
+
+        .camera-frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 3px solid #333;
+        }
+
+        .camera-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-controls-overlay {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .camera-control-btn {
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .camera-control-btn:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .hand-tracking-status {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .hand-tracking-status.active {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+        }
+
+        .practice-mode-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .practice-mode-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .lighting-warning {
+            background: #fef3c7;
+            border-left: 4px solid var(--warning-color);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .lighting-warning.hidden {
+            display: none;
+        }
+
+        /* Right Panel - Text Output */
+        .text-panel {
+            flex: 1;
+            background: white;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            color: var(--text-light);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .panel-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .language-select {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: white;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: var(--bg-light);
+            color: var(--primary-color);
+        }
+
+        .speed-select {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            background: white;
+        }
+
+        /* Recognized Text Section */
+        .recognized-text-section {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .text-timestamp {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Paragraph Style for Recognized Text */
+        .recognized-paragraph {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            height: 300px;
+            font-size: 1.125rem;
+            line-height: 1.8;
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .recognized-paragraph.empty {
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        .confidence-meter {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: 12px;
+        }
+
+        .confidence-meter-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .confidence-bar {
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-color), #059669);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .confidence-hint {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+        }
+
+        /* Word Suggestions */
+        .word-suggestions {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: 12px;
+            min-height: 60px;
+        }
+
+        .suggestions-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .suggestions-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .suggestion-chip {
+            background: white;
+            border: 2px solid var(--border-color);
+            color: var(--text-dark);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .suggestion-chip:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        .suggestion-chip.empty {
+            cursor: default;
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        .suggestion-chip.empty:hover {
+            background: white;
+            color: var(--text-light);
+            border-color: var(--border-color);
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-speak-all {
+            flex: 1;
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-speak-all:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-pause {
+            background: white;
+            border: 2px solid var(--border-color);
+            color: var(--text-dark);
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-pause:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-wrapper {
+                flex-direction: column;
+            }
+
+            .video-panel,
+            .text-panel {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn-speak-all {
+                width: 100%;
+            }
+        }
+
+        /* Loading State */
+        .video-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            z-index: 10;
+        }
+
+        .video-loading i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+        /* Navigation Links */
+/* Nav container */
+.app-nav-links {
+    display: flex;
+    gap: 30px;
+}
+
+/* Blue nav links */
+.app-nav-link {
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 16px;
+    color: #2563eb;
+    transition: 0.2s ease;
+}
+
+.app-nav-link:hover {
+    color: #1e40af;
+    text-decoration: underline;
+}
+
+/* Profile */
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.user-profile i {
+    color: #2563eb;
+    font-size: 18px;
+}
+
+/* Logout button */
+.btn-logout {
+    border: 1px solid #e2e8f0;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: white;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: 0.2s;
+}
+
+.btn-logout:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+.text-edit-controls {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.text-edit-btn {
+    flex: 1;
+    height: 50px;
+    border-radius: 10px;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    cursor: pointer;
+    transition: 0.2s ease;
+
+    background: #2563eb;
+    color: white;
+}
+
+.text-edit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
+}
+
+.text-edit-btn.danger {
+    background: #ef4444;
+}
+
+    </style>
+    
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="container-fluid px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="logo-section">
+                    <div class="logo">
+                        <i class="fas fa-hands"></i>
+                        <span>SignSpeak</span>
+                    </div>
+                    <span class="status-badge" id="statusBadge">
+                        <i class="fas fa-circle"></i>
+                        <span id="statusText">Active</span>
+                    </span>
+                </div>
+               <div class="d-flex align-items-center ms-auto gap-4">
+
+    <!-- NAV LINKS -->
+    <div class="app-nav-links">
+        <a href="/" class="app-nav-link">Home</a>
+        <a href="/#features" class="app-nav-link">Features</a>
+        <a href="/#signs" class="app-nav-link">Signs</a>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="user-profile">
+        <i class="fas fa-user-circle"></i>
+        <span>{{ user_name }}</span>
+    </div>
+
+    <!-- LOGOUT -->
+    <a href="/logout" class="btn-logout">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Sign out</span>
+    </a>
+
+</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+        <!-- Left Panel - Video -->
+        <div class="video-panel">
+            <div class="panel-header">
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    <span>Live Detection</span>
+                </div>
+            </div>
+
+            <div class="camera-frame-container">
+                <div class="camera-frame">
+                    <img id="videoFeed" src="{{ url_for('video_feed') }}" alt="Video Feed" 
+                         onerror="handleVideoError()" />
+                    <div id="videoLoading" class="video-loading" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Initializing camera...</p>
+                    </div>
+                    <div class="camera-controls-overlay">
+                        <button class="camera-control-btn" title="Fullscreen" onclick="toggleFullscreen()">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hand-tracking-status active" id="handTrackingStatus">
+                <div>
+                    <i class="fas fa-hand-paper"></i>
+                    <span>Hand Tracking Active</span>
+                </div>
+                <div style="font-size: 0.875rem; opacity: 0.9;">
+                    Keep hands within the central frame for best accuracy
+                </div>
+            </div>
+
+
+
+            <div class="lighting-warning hidden" id="lightingWarning">
+                <div>
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Lighting is slightly low. Consider adding a light source.</span>
+                </div>
+                <button onclick="document.getElementById('lightingWarning').classList.add('hidden')" 
+                        style="background: none; border: none; color: var(--warning-color); cursor: pointer;">
+                    Dismiss
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel - Text Output -->
+        <div class="text-panel">
+            <div class="panel-tabs">
+                <button class="tab-btn active" onclick="switchTab('live')">Live</button>
+            </div>
+
+            <div class="panel-controls">
+                <select class="language-select" id="languageSelect">
+                    <option value="en">Sign Language → English</option>
+                </select>
+                <div class="control-group">
+                    <button class="control-btn" title="Volume">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                    <select class="speed-select" id="speedSelect">
+                        <option>1.0x</option>
+                        <option>0.75x</option>
+                        <option>0.5x</option>
+                        <option>1.25x</option>
+                        <option>1.5x</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="recognized-text-section" id="recognizedTextSection">
+                <div class="text-timestamp" id="currentTimestamp"></div>
+                <div class="recognized-paragraph empty" id="recognizedParagraph">
+                    Translated text will appear here as you make sign language gestures...
+                </div>
+                <div id="textStats" style="
+               margin-top:10px;
+              font-size:14px;
+              color:var(--text-light);
+              font-weight:500;">
+              Words: 0 | Letters: 0
+             </div>
+            </div>
+    <div class="text-edit-controls">
+    
+    <button id="clearLastLetterBtn" class="text-edit-btn">
+        <i class="fas fa-backspace"></i> Clear Last Letter
+    </button>
+
+    <button id="clearAllTextBtn" class="text-edit-btn danger">
+        <i class="fas fa-trash"></i> Clear All Text
+    </button>
+
+    <button id="aiCorrectBtn" class="text-edit-btn">
+        🤖 AI Correct
+    </button>
+
+    </div>
+            <div class="confidence-meter">
+                <div class="confidence-meter-label">
+                    <span>Confidence</span>
+                    <span id="confidenceLevel">Good</span>
+                </div>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" id="confidenceFill" style="width: 85%"></div>
+                </div>
+                <div class="confidence-hint">
+                    Try to keep your palms visible to the camera
+                </div>
+            </div>
+
+            <!-- Word Suggestions -->
+            <div class="word-suggestions">
+                <div class="suggestions-label">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Word Suggestions</span>
+                </div>
+                <div class="suggestions-chips" id="suggestionsContainer">
+                    <div class="suggestion-chip empty">Start signing to see suggestions...</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-speak-all" id="speakAllButton">
+                    <i class="fas fa-volume-up"></i>
+                    Speak All
+                </button>
+                <button class="btn-pause" id="pauseButton">
+                    <i class="fas fa-pause"></i>
+                </button>
+                <button class="btn-pause" id="clearButton" title="Clear Text" style="margin-left: 0.5rem;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    
+    <script>
+        const socket = io();
+        let recognizedTexts = [];
+        let currentConfidence = 85;
+        let paragraphText = '';
+        let wordDictionary = [];
+        let cachedVoice = null;
+        
+        // Speech state tracking for proper pause/resume
+        let isSpeaking = false;
+        let isPaused = false;
+        let fullText = '';           // The complete text
+        let words = [];              // Array of words
+        let currentWordIndex = 0;    // Which word we're on
+        let speechRate = 1.0;
+
+        // Pre-load and cache voices (eliminates lag on first "Speak All" click)
+        function loadVoices() {
+            const voices = speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                cachedVoice = voices.find(voice =>
+                    voice.name.includes('English') &&
+                    (voice.name.includes('Female') || voice.name.includes('US'))
+                ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+                console.log('Voice loaded:', cachedVoice ? cachedVoice.name : 'default');
+            }
+        }
+        
+        // Load voices immediately and on change
+        loadVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        // Load word dictionary
+        fetch('/static/dictionary.json')
+            .then(response => response.json())
+            .then(data => {
+                wordDictionary = data.words;
+                console.log(`Loaded ${wordDictionary.length} words for suggestions`);
+            })
+            .catch(error => console.error('Error loading dictionary:', error));
+
+        // Update timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            const options = { weekday: 'long', hour: 'numeric', minute: '2-digit', hour12: true };
+            const timeStr = now.toLocaleDateString('en-US', options).toUpperCase();
+            document.getElementById('currentTimestamp').textContent = timeStr;
+        }
+        updateTimestamp();
+        setInterval(updateTimestamp, 60000);
+
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Fullscreen toggle
+        function toggleFullscreen() {
+            const videoFrame = document.querySelector('.camera-frame');
+            if (!document.fullscreenElement) {
+                videoFrame.requestFullscreen();
+                } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Check model status
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                const badge = document.getElementById('statusBadge');
+                const text = document.getElementById('statusText');
+                
+                if (data.skeleton_model || data.cnn_model) {
+                    badge.classList.remove('offline');
+                    text.textContent = 'Active';
+                } else {
+                    badge.classList.add('offline');
+                    text.textContent = 'No Models';
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+            }
+        }
+        checkStatus();
+
+        // Video feed handling
+        const videoFeed = document.getElementById('videoFeed');
+        const videoLoading = document.getElementById('videoLoading');
+
+        function handleVideoError() {
+            videoLoading.style.display = 'block';
+            videoLoading.innerHTML = '<i class="fas fa-exclamation-triangle"></i><p>Camera not available</p>';
+        }
+
+        videoFeed.onload = function() {
+            videoLoading.style.display = 'none';
+        };
+
+        videoFeed.onerror = handleVideoError;
+
+        // Socket.IO - Receive predictions
+        socket.on('prediction', function (data) {
+            const text = data.text;
+            const confidence = Math.round((data.confidence || 0.85) * 100);
+            const isWord = data.is_word || false;
+            
+            // Update confidence meter
+            currentConfidence = confidence;
+            updateConfidenceMeter(confidence);
+
+            // Add recognized text (allow spaces explicitly)
+            if (text !== undefined && text !== null && text !== '') {
+                addRecognizedText(text, confidence, isWord);
+            }
+        });
+
+        // Add recognized text to paragraph
+        function addRecognizedText(text, confidence, isWord = true) {
+            // Store for history
+            recognizedTexts.push({
+                text: text,
+                confidence: confidence,
+                timestamp: new Date(),
+                isWord: isWord
+            });
+
+            // Keep only last 50 items for history
+            if (recognizedTexts.length > 50) {
+                recognizedTexts.shift();
+            }
+
+            // Add to paragraph text
+            const paragraphElement = document.getElementById('recognizedParagraph');
+            
+            // Remove empty state class
+            paragraphElement.classList.remove('empty');
+            
+            // Handle space character (from pinch gesture)
+            // Only add space if the last character isn't already a space
+            if (text === ' ') {
+                if (!paragraphText.endsWith(' ')) {
+                    paragraphText += ' ';
+                    paragraphElement.textContent = paragraphText;
+                    paragraphElement.scrollTop = paragraphElement.scrollHeight;
+                }
+                return;
+            }
+            
+            // Get the last word in the paragraph
+            const words = paragraphText.trim().split(/\s+/);
+            const lastWord = words.length > 0 ? words[words.length - 1] : '';
+            
+            // // Check if this is the same word (avoid duplicates)
+            // if (lastWord && lastWord.toLowerCase() === text.toLowerCase()) {
+            //     return;
+            // }
+            
+            // Add the text directly without automatic spacing
+            // Spaces will only appear when the user makes the space sign gesture
+            paragraphText += text;
+            
+            // Update the paragraph display
+            paragraphElement.textContent = paragraphText;
+            
+            // Auto-scroll to bottom
+            paragraphElement.scrollTop = paragraphElement.scrollHeight;
+            
+            // Update word suggestions
+            updateWordSuggestions();
+            updateTextStats();
+        }
+
+        // Update word suggestions based on current text
+        function updateWordSuggestions() {
+            const suggestionsContainer = document.getElementById('suggestionsContainer');
+            
+            // Get the last word being typed (incomplete word)
+            const words = paragraphText.trim().split(/\s+/);
+            const lastWord = words[words.length - 1] || '';
+            
+            // Only show suggestions if there's at least one character
+            if (lastWord.length === 0) {
+                suggestionsContainer.innerHTML = '<div class="suggestion-chip empty">Start signing to see suggestions...</div>';
+                return;
+            }
+            
+            // Find matching words (case-insensitive prefix match)
+            const matches = wordDictionary
+                .filter(word => word.toUpperCase().startsWith(lastWord.toUpperCase()))
+                .slice(0, 10); // Top 5 suggestions
+            
+            if (matches.length === 0) {
+                suggestionsContainer.innerHTML = '<div class="suggestion-chip empty">No suggestions available</div>';
+                return;
+            }
+            
+            // Display suggestions
+            suggestionsContainer.innerHTML = '';
+            matches.forEach(word => {
+                const chip = document.createElement('div');
+                chip.className = 'suggestion-chip';
+                chip.innerHTML = `<i class="fas fa-hand-pointer"></i><span>${word}</span>`;
+                chip.onclick = () => acceptSuggestion(word);
+                suggestionsContainer.appendChild(chip);
+            });
+        }
+
+        // Accept a word suggestion
+        function acceptSuggestion(word) {
+            // Replace the last incomplete word with the suggestion
+            const words = paragraphText.trim().split(/\s+/);
+            
+            if (words.length > 0) {
+                words[words.length - 1] = word;
+                paragraphText = words.join(' ') + ' '; // Add space after accepted word
+            } else {
+                paragraphText = word + ' ';
+            }
+            
+            // Update display
+            const paragraphElement = document.getElementById('recognizedParagraph');
+            paragraphElement.textContent = paragraphText;
+            paragraphElement.classList.remove('empty');
+            
+            // Clear suggestions after accepting
+            document.getElementById('suggestionsContainer').innerHTML = 
+                '<div class="suggestion-chip empty">Continue signing...</div>';
+        }
+
+        // Clear paragraph text
+        function clearParagraph() {
+            paragraphText = '';
+            const paragraphElement = document.getElementById('recognizedParagraph');
+            paragraphElement.textContent = 'Translated text will appear here as you make sign language gestures...';
+            paragraphElement.classList.add('empty');
+            updateTextStats();
+        }
+        function updateTextStats() {
+    const text = paragraphText || "";
+
+    const trimmed = text.trim();
+
+    const wordCount = trimmed.length > 0
+        ? trimmed.split(/\s+/).length
+        : 0;
+
+    const letterCount = text.replace(/\s/g, "").length;
+
+    document.getElementById("textStats").textContent =
+        `Words: ${wordCount} | Letters: ${letterCount}`;
+}
+
+        // Update confidence meter
+        function updateConfidenceMeter(confidence) {
+            const fill = document.getElementById('confidenceFill');
+            const level = document.getElementById('confidenceLevel');
+            
+            fill.style.width = confidence + '%';
+            
+            if (confidence >= 85) {
+                fill.style.background = 'linear-gradient(90deg, var(--success-color), #059669)';
+                level.textContent = 'Excellent';
+            } else if (confidence >= 70) {
+                fill.style.background = 'linear-gradient(90deg, var(--warning-color), #d97706)';
+                level.textContent = 'Good';
+            } else {
+                fill.style.background = 'linear-gradient(90deg, var(--danger-color), #dc2626)';
+                level.textContent = 'Fair';
+            }
+        }
+
+        // Speak words starting from a specific word index
+        function speakFromWordIndex(wordArray, startIndex = 0) {
+            if (!wordArray || wordArray.length === 0) return;
+            
+            // Get remaining words
+            const remainingWords = wordArray.slice(startIndex);
+            if (remainingWords.length === 0) {
+                resetSpeechState();
+                return;
+            }
+
+            // Cancel any ongoing speech
+            speechSynthesis.cancel();
+
+            isSpeaking = true;
+            isPaused = false;
+            currentWordIndex = startIndex;
+            speechRate = parseFloat(document.getElementById('speedSelect').value);
+
+            const textToSpeak = remainingWords.join(' ');
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.rate = speechRate;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+
+            if (cachedVoice) {
+                utterance.voice = cachedVoice;
+            }
+
+            // Track word boundaries
+            let localWordCount = 0;
+            utterance.onboundary = function(event) {
+                if (event.name === 'word') {
+                    localWordCount++;
+                    currentWordIndex = startIndex + localWordCount;
+                }
+            };
+
+            // Reset state when speech ends
+            utterance.onend = function() {
+                resetSpeechState();
+            };
+
+            // Handle errors (but not when we intentionally cancel)
+            utterance.onerror = function(e) {
+                if (e.error !== 'interrupted' && e.error !== 'canceled') {
+                    console.error('Speech error:', e.error);
+                    resetSpeechState();
+                }
+            };
+
+            speechSynthesis.speak(utterance);
+            
+            // Fallback: estimate word position based on time if onboundary doesn't work
+            const avgWordDuration = 300 / speechRate; // ~300ms per word at normal speed
+            const wordTracker = setInterval(() => {
+                if (!isSpeaking || isPaused) {
+                    clearInterval(wordTracker);
+                    return;
+                }
+                // Increment word index based on time elapsed
+                if (currentWordIndex < startIndex + remainingWords.length - 1) {
+                    currentWordIndex++;
+                }
+            }, avgWordDuration);
+        }
+
+        // Reset speech state and UI
+        function resetSpeechState() {
+            isSpeaking = false;
+            isPaused = false;
+            fullText = '';
+            words = [];
+            currentWordIndex = 0;
+            const pauseBtn = document.getElementById('pauseButton');
+            if (pauseBtn) {
+                pauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            }
+        }
+
+        // Main speak function - starts from beginning
+        function speakText(text) {
+            if (!text || text.trim().length === 0) return;
+            
+            fullText = text.trim();
+            words = fullText.split(/\s+/); // Split into words
+            currentWordIndex = 0;
+            
+            speakFromWordIndex(words, 0);
+        }
+
+        // Pause speech and save position
+        function pauseSpeech() {
+            if (isSpeaking && !isPaused) {
+                speechSynthesis.cancel(); // Stop speaking
+                isPaused = true;
+                isSpeaking = false;
+                document.getElementById('pauseButton').innerHTML = '<i class="fas fa-play"></i>';
+                console.log('Paused at word index:', currentWordIndex, 'Word:', words[currentWordIndex]);
+            }
+        }
+
+        // Resume speech from saved position
+        function resumeSpeech() {
+            if (isPaused && words.length > 0) {
+                console.log('Resuming from word index:', currentWordIndex, 'Word:', words[currentWordIndex]);
+                speakFromWordIndex(words, currentWordIndex);
+                document.getElementById('pauseButton').innerHTML = '<i class="fas fa-pause"></i>';
+            }
+        }
+
+        // Speak All button - speaks words naturally
+        document.getElementById('speakAllButton').addEventListener('click', function() {
+            const allText = paragraphText.trim();
+            
+            if (!allText || allText === 'Translated text will appear here as you make sign language gestures...') {
+                alert('No text to speak. Please make some signs first.');
+                return;
+            }
+            
+            // Reset state and start fresh
+            resetSpeechState();
+            speakText(allText);
+        });
+
+        // Pause/Resume button - properly continues from where it stopped
+        const pauseButton = document.getElementById('pauseButton');
+        pauseButton.addEventListener('click', function() {
+            if (isPaused) {
+                // Currently paused -> resume from saved position
+                resumeSpeech();
+            } else if (isSpeaking) {
+                // Currently speaking -> pause and save position
+                pauseSpeech();
+            }
+        });
+
+        // Clear button
+        document.getElementById('clearButton').addEventListener('click', function() {
+            if (confirm('Clear all recognized text?')) {
+                clearParagraph();
+            }
+        });
+        // Clear last letter
+document.getElementById('clearLastLetterBtn').addEventListener('click', function () {
+    if (!paragraphText) return;
+
+    paragraphText = paragraphText.slice(0, -1);
+
+    const el = document.getElementById('recognizedParagraph');
+
+    if (paragraphText.trim().length === 0) {
+        el.textContent = 'Translated text will appear here as you make sign language gestures...';
+        el.classList.add('empty');
+    } else {
+        el.textContent = paragraphText;
+        el.classList.remove('empty');
+    }
+
+    updateWordSuggestions();
+    updateTextStats();
+});
+
+// Clear all text
+document.getElementById('clearAllTextBtn').addEventListener('click', function () {
+    paragraphText = '';
+
+    const el = document.getElementById('recognizedParagraph');
+    el.textContent = 'Translated text will appear here as you make sign language gestures...';
+    el.classList.add('empty');
+
+    document.getElementById('suggestionsContainer').innerHTML =
+        '<div class="suggestion-chip empty">Start signing to see suggestions...</div>';
+
+    updateTextStats();
+});
+
+// AI Correct (basic placeholder)
+document.getElementById("aiCorrectBtn").addEventListener("click", async function () {
+
+    if (!paragraphText.trim()) {
+        alert("No text to correct.");
+        return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.innerText = "Correcting...";
+
+    try {
+        const response = await fetch("https://api.languagetool.org/v2/check", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams({
+                text: paragraphText,
+                language: "en-US"
+            })
+        });
+
+        const data = await response.json();
+
+        let correctedText = paragraphText;
+
+        const matches = data.matches.sort((a, b) => b.offset - a.offset);
+
+        matches.forEach(match => {
+            if (match.replacements.length > 0) {
+                const suggestion = match.replacements[0].value;
+
+                correctedText =
+                    correctedText.slice(0, match.offset) +
+                    suggestion +
+                    correctedText.slice(match.offset + match.length);
+            }
+        });
+
+        correctedText =
+            correctedText.charAt(0).toUpperCase() +
+            correctedText.slice(1);
+
+        paragraphText = correctedText;
+
+        document.getElementById("recognizedParagraph").textContent = paragraphText;
+
+        updateTextStats();
+        updateWordSuggestions();
+
+    } catch (error) {
+        console.error(error);
+        alert("AI correction failed.");
+    }finally{
+    btn.disabled = false;
+    btn.innerText = "🤖 AI Auto Correct";
+    }
+});
+
+    </script>
+
+</body>
+
+</html>
